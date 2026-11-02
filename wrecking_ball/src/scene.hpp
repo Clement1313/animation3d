@@ -4,6 +4,8 @@
 
 #include "cgp/cgp.hpp"
 #include "environment.hpp"
+#include "pendulum/pendulum.hpp"
+
 
 using cgp::mesh_drawable;
 using cgp::curve_drawable;
@@ -70,6 +72,7 @@ struct scene_structure : cgp::scene_inputs_generic
     simulation_parameters sim;
     particle_structure ball;
     std::vector<particle_structure> bricks_state;
+	pendulum_structure pendulum;
 
     curve_drawable curve; // A set of vertices displayed as a curve
     // Functions
@@ -89,4 +92,7 @@ struct scene_structure : cgp::scene_inputs_generic
     void mouse_click_event();
     void keyboard_event();
     void idle_frame();
+
+	void update_ball();     // procedural motion of the wrecking ball
+	void update_cable();    // orients the cable between pivot and ball
 };

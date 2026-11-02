@@ -35,11 +35,10 @@ void scene_structure::initialize()
     sphere.initialize_data_on_gpu(mesh_primitive_sphere(0.45f));
     sphere.material.color = { 0.2f, 0.2f, 0.25f };
 
-    // Chain
+    // Cable (mesh rebuilt every frame in update_cable )
     cylinder.initialize_data_on_gpu(
-        mesh_primitive_cylinder(0.035f, { 0, 0, -0.4f }, { 0, 0, 0.4f }));
+        mesh_primitive_cylinder(0.035f, { 0, 0, 0 }, { 0, 0, -1.0f }));
     cylinder.material.color = { 0.4f, 0.4f, 0.4f };
-    cylinder.model.translation = { -1.5f, 0.0f, 2.1f };
 
     // Brick drawables
     mesh const brick_mesh = mesh_primitive_cube({ 0, 0, 0 }, brick_size);
@@ -56,12 +55,14 @@ void scene_structure::initialize()
 void scene_structure::reset_simulation()
 {
     // Wrecking ball
+    timer.t = 0.0f;
     ball = particle_structure();
-    ball.p = { -1.5f, 0.0f, 1.25f };
     ball.r = 0.45f;
     ball.m = sim.ball_mass;
     ball.c = { 0.2f, 0.2f, 0.25f };
     ball.active = true;
+    update_ball();
+    update_cable();
 
     bricks_state.clear();
     for (int row = 0; row < rows; ++row)
@@ -99,6 +100,9 @@ void scene_structure::display_frame()
 
     timer.update();
 
+    update_ball();
+    update_cable();
+
     sync_drawables();
 
     draw(ground, environment);
@@ -135,6 +139,11 @@ void scene_structure::display_gui()
             b.m = sim.brick_mass;
     }
 
+    ImGui::Separator();
+    ImGui::Text("Pendulum");
+    ImGui::SliderFloat("Cable length", &pendulum.length, 2.0f, 4.0f, "%.2f");
+    ImGui::SliderAngle("Start angle", &pendulum.theta_max, 5.0f, 75.0f);
+
     if (ImGui::Button("Reset"))
         reset_simulation();
 }
@@ -155,4 +164,18 @@ void scene_structure::keyboard_event()
 void scene_structure::idle_frame()
 {
     camera_control.idle_frame();
+}
+
+void scene_structure::update_ball()
+{
+    ball.p = pendulum.evaluate_position(timer.t, sim.gravity);
+    ball.v = pendulum.evaluate_velocity(timer.t, sim.gravity);
+}
+
+void scene_structure::update_cable()
+{
+    cylinder.clear();
+    cylinder.initialize_data_on_gpu(
+        mesh_primitive_cylinder(0.035f, pendulum.pivot, ball.p));
+    cylinder.material.color = { 0.4f, 0.4f, 0.4f };
 }
