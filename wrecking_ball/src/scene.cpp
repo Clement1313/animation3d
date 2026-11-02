@@ -1,10 +1,22 @@
 #include "scene.hpp"
 
-// Test scene to check correct compilation and run
-//  The code should display a rotating cube and a textured quad on top of a
-//  circular ground.
-
 using namespace cgp;
+
+namespace
+{
+    int const rows = 4;
+    int const cols = 5;
+    float const spacing = 0.52f;
+    float const brick_size = 0.5f;
+    vec3 const brick_color = { 0.65f, 0.25f, 0.15f };
+
+    vec3 brick_position(int row, int col)
+    {
+        float const offset = (row % 2) * spacing / 2.0f;
+        return { 0.0f, (col - (cols - 1) / 2.0f) * spacing + offset,
+                 -0.75f + row * spacing };
+    }
+} // namespace
 
 void scene_structure::initialize()
 {
@@ -22,7 +34,6 @@ void scene_structure::initialize()
     // Wrecking ball
     sphere.initialize_data_on_gpu(mesh_primitive_sphere(0.45f));
     sphere.material.color = { 0.2f, 0.2f, 0.25f };
-    sphere.model.translation = { -1.5f, 0.0f, 1.25f };
 
     // Chain
     cylinder.initialize_data_on_gpu(
@@ -30,31 +41,52 @@ void scene_structure::initialize()
     cylinder.material.color = { 0.4f, 0.4f, 0.4f };
     cylinder.model.translation = { -1.5f, 0.0f, 2.1f };
 
-    // Wall made of individual bricks
-    mesh const brick_mesh = mesh_primitive_cube({ 0, 0, 0 }, 0.5f);
+    // Brick drawables
+    mesh const brick_mesh = mesh_primitive_cube({ 0, 0, 0 }, brick_size);
+    for (int k = 0; k < rows * cols; ++k)
+    {
+        mesh_drawable brick;
+        brick.initialize_data_on_gpu(brick_mesh);
+        brick.material.color = brick_color;
+        bricks.push_back(brick);
+    }
+    reset_simulation();
+}
 
-    int const rows = 4;
-    int const cols = 5;
-    float const spacing = 0.52f;
+void scene_structure::reset_simulation()
+{
+    // Wrecking ball
+    ball = particle_structure();
+    ball.p = { -1.5f, 0.0f, 1.25f };
+    ball.r = 0.45f;
+    ball.m = sim.ball_mass;
+    ball.c = { 0.2f, 0.2f, 0.25f };
+    ball.active = true;
 
+    bricks_state.clear();
     for (int row = 0; row < rows; ++row)
     {
         for (int col = 0; col < cols; ++col)
         {
-            mesh_drawable brick;
-            brick.initialize_data_on_gpu(brick_mesh);
-            brick.material.color = { 0.65f, 0.25f, 0.15f };
-
-            float const offset = (row % 2) * spacing / 2.0f;
-
-            brick.model.translation = { 0.0f,
-                                        (col - (cols - 1) / 2.0f) * spacing
-                                            + offset,
-                                        -0.75f + row * spacing };
-
-            bricks.push_back(brick);
+            particle_structure b;
+            b.p = brick_position(row, col);
+            b.r = brick_size / 2.0f;
+            b.m = sim.brick_mass;
+            b.c = brick_color;
+            b.active = false;
+            bricks_state.push_back(b);
         }
     }
+
+    sync_drawables();
+}
+
+void scene_structure::sync_drawables()
+{
+    sphere.model.translation = ball.p;
+
+    for (size_t k = 0; k < bricks.size(); ++k)
+        bricks[k].model.translation = bricks_state[k].p;
 }
 
 void scene_structure::display_frame()
@@ -66,6 +98,8 @@ void scene_structure::display_frame()
         draw(global_frame, environment);
 
     timer.update();
+
+    sync_drawables();
 
     draw(ground, environment);
     draw(cylinder, environment);
@@ -80,6 +114,29 @@ void scene_structure::display_gui()
     ImGui::Checkbox("Frame", &gui.display_frame);
     ImGui::SliderFloat("Time Scale", &timer.scale, 0.0f, 2.0f, "%.1f");
     ImGui::Checkbox("Wireframe", &gui.display_wireframe);
+
+    ImGui::Separator();
+    ImGui::Text("Simulation");
+    ImGui::SliderFloat("dt", &sim.dt, 0.001f, 0.02f, "%.4f");
+    ImGui::SliderInt("Iterations / frame", &sim.iterations, 1, 20);
+    ImGui::SliderFloat("Gravity", &sim.gravity, 0.0f, 20.0f, "%.2f");
+    ImGui::SliderFloat("Damping", &sim.damping, 0.0f, 2.0f, "%.2f");
+    ImGui::SliderFloat("Restitution", &sim.restitution, 0.0f, 1.0f, "%.2f");
+
+    bool changed = false;
+    changed |=
+        ImGui::SliderFloat("Ball mass", &sim.ball_mass, 1.0f, 200.0f, "%.1f");
+    changed |=
+        ImGui::SliderFloat("Brick mass", &sim.brick_mass, 0.1f, 10.0f, "%.2f");
+    if (changed)
+    {
+        ball.m = sim.ball_mass;
+        for (particle_structure& b : bricks_state)
+            b.m = sim.brick_mass;
+    }
+
+    if (ImGui::Button("Reset"))
+        reset_simulation();
 }
 
 void scene_structure::mouse_move_event()
