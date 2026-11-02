@@ -55,10 +55,21 @@ if(MSVC)
 else()
     target_compile_options(${PROJECT_NAME} PRIVATE
         -Wall -Wextra -pedantic
-        -Wfatal-errors -Wno-pragmas -Wno-unknown-warning-option
+        -Wfatal-errors -Wno-pragmas
         -Wno-sign-compare -Wno-type-limits
     )
+
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        target_compile_options(${PROJECT_NAME} PRIVATE
+            -Wno-template-id-cdtor
+        )
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        target_compile_options(${PROJECT_NAME} PRIVATE
+            -Wno-unknown-warning-option
+        )
+    endif()
 endif()
+
 
 # Link required libraries for Unix (Glad needs dl, OpenGL framework on macOS)
 if(UNIX AND NOT EMSCRIPTEN)

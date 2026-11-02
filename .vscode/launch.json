@@ -1,0 +1,22 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Lancer Wrecking Ball",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/project",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    "name": "GSETTINGS_SCHEMA_DIR",
+                    "value": "/usr/share/glib-2.0/schemas"
+                }
+            ],
+            "externalConsole": false,
+            "MIMode": "gdb"
+        }
+    ]
+}
