@@ -3,7 +3,8 @@
 using namespace cgp;
 
 void simulate(particle_structure& ball, std::vector<particle_structure>& bricks,
-              simulation_parameters const& sim, float dt)
+              simulation_parameters const& sim,
+              pendulum_structure const& pendulum, float dt)
 {
     vec3 const g = { 0, 0, -sim.gravity };
     float const ground_z = -1.0f;
@@ -19,6 +20,10 @@ void simulate(particle_structure& ball, std::vector<particle_structure>& bricks,
         b.v = (1 - sim.damping * dt) * b.v + dt * f / b.m;
     }
 
+    // Simulated ball: gravity only
+    if (sim.simulated_ball)
+        ball.v = ball.v + dt * g;
+
     // Collision brick / ground
     for (size_t k = 0; k < N; ++k)
     {
@@ -30,13 +35,13 @@ void simulate(particle_structure& ball, std::vector<particle_structure>& bricks,
             b.p.z = ground_z + b.r;
             if (b.v.z < 0.0f)
                 b.v.z = -sim.restitution * b.v.z;
-            // friction on the tangential velocity
             b.v.x *= (1 - sim.friction);
             b.v.y *= (1 - sim.friction);
         }
     }
 
     // Collision ball / bricks
+    float const w_ball = sim.simulated_ball ? 1.0f / ball.m : 0.0f;
     for (size_t k = 0; k < N; ++k)
     {
         particle_structure& b = bricks[k];
@@ -47,13 +52,21 @@ void simulate(particle_structure& ball, std::vector<particle_structure>& bricks,
         if (distance < min_distance && distance > 1e-6f)
         {
             vec3 const n = delta / distance;
+            float const w_brick = 1.0f / b.m;
             b.active = true; // wake up
 
             float const v_rel = dot(b.v - ball.v, n);
             if (v_rel < 0.0f)
-                b.v -= (1 + sim.restitution) * v_rel * n;
+            {
+                float const impulse =
+                    -(1.0f + sim.restitution) * v_rel / (w_ball + w_brick);
+                b.v += (impulse * w_brick) * n;
+                ball.v -= (impulse * w_ball) * n;
+            }
 
-            b.p = ball.p + min_distance * n;
+            float const overlap = min_distance - distance;
+            b.p += (overlap * w_brick / (w_ball + w_brick)) * n;
+            ball.p -= (overlap * w_ball / (w_ball + w_brick)) * n;
         }
     }
 
@@ -99,5 +112,14 @@ void simulate(particle_structure& ball, std::vector<particle_structure>& bricks,
     {
         if (bricks[k].active)
             bricks[k].p = bricks[k].p + dt * bricks[k].v;
+    }
+
+    if (sim.simulated_ball)
+    {
+        ball.p = ball.p + dt * ball.v;
+
+        vec3 const n = normalize(ball.p - pendulum.pivot);
+        ball.p = pendulum.pivot + pendulum.length * n;
+        ball.v = ball.v - dot(ball.v, n) * n;
     }
 }
