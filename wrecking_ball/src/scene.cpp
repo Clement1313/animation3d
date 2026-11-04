@@ -102,9 +102,15 @@ void scene_structure::display_frame()
 
     float const dt = sim.dt * timer.scale;
     for (int k = 0; k < sim.iterations; ++k)
-        simulate(ball, bricks_state, sim, dt);
+    {
+        // analytic pendulum
+        if (!sim.simulated_ball)
+            update_ball();
+        simulate(ball, bricks_state, sim, pendulum, dt);
+    }
 
-    update_ball();
+    if (!sim.simulated_ball)
+        update_ball();
     update_cable();
 
     sync_drawables();
@@ -153,8 +159,13 @@ void scene_structure::display_gui()
 
     ImGui::Separator();
     ImGui::Text("Pendulum");
-    ImGui::SliderFloat("Cable length", &pendulum.length, 2.0f, 4.0f, "%.2f");
-    ImGui::SliderAngle("Start angle", &pendulum.theta_max, 5.0f, 75.0f);
+    if (ImGui::Checkbox("Simulated ball", &sim.simulated_ball))
+        reset_simulation();
+    if (ImGui::SliderFloat("Cable length", &pendulum.length, 2.0f, 4.0f,
+                           "%.2f"))
+        reset_simulation();
+    if (ImGui::SliderAngle("Start angle", &pendulum.theta_max, 5.0f, 75.0f))
+        reset_simulation();
 
     if (ImGui::Button("Reset"))
         reset_simulation();

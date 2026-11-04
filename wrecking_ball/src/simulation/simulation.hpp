@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "cgp/cgp.hpp"
+#include "pendulum/pendulum.hpp"
 
 // from tp02
 struct particle_structure
@@ -26,7 +27,9 @@ struct simulation_parameters
     float friction = 0.05f;
     float ball_mass = 50.0f;
     float brick_mass = 1.0f;
+    bool simulated_ball = true; // false: analytic pendulum
 };
 
 void simulate(particle_structure& ball, std::vector<particle_structure>& bricks,
-              simulation_parameters const& sim, float dt);
+              simulation_parameters const& sim,
+              pendulum_structure const& pendulum, float dt);
