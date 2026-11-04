@@ -137,6 +137,7 @@ void scene_structure::display_gui()
     ImGui::SliderFloat("Gravity", &sim.gravity, 0.0f, 20.0f, "%.2f");
     ImGui::SliderFloat("Damping", &sim.damping, 0.0f, 2.0f, "%.2f");
     ImGui::SliderFloat("Restitution", &sim.restitution, 0.0f, 1.0f, "%.2f");
+    ImGui::SliderFloat("Friction", &sim.friction, 0.0f, 1.0f, "%.2f");
 
     bool changed = false;
     changed |=
