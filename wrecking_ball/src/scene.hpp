@@ -49,6 +49,7 @@ struct scene_structure : cgp::scene_inputs_generic
     simulation_parameters sim;
     particle_structure ball;
     std::vector<particle_structure> bricks_state;
+    std::vector<brick_structure> rigid_bricks;
     pendulum_structure pendulum;
 
     curve_drawable curve; // A set of vertices displayed as a curve
