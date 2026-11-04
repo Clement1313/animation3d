@@ -100,6 +100,10 @@ void scene_structure::display_frame()
 
     timer.update();
 
+    float const dt = sim.dt * timer.scale;
+    for (int k = 0; k < sim.iterations; ++k)
+        simulate(ball, bricks_state, sim, dt);
+
     update_ball();
     update_cable();
 
@@ -111,6 +115,13 @@ void scene_structure::display_frame()
 
     for (mesh_drawable const& brick : bricks)
         draw(brick, environment);
+
+    if (gui.display_wireframe)
+    {
+        draw_wireframe(sphere, environment);
+        for (mesh_drawable const& brick : bricks)
+            draw_wireframe(brick, environment);
+    }
 }
 
 void scene_structure::display_gui()
