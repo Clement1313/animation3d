@@ -79,6 +79,18 @@ void scene_structure::reset_simulation()
         }
     }
 
+    // Rigid bricks
+    rigid_bricks.clear();
+    for (int row = 0; row < rows; ++row)
+    {
+        for (int col = 0; col < cols; ++col)
+        {
+            brick_structure b;
+            b.initialize(brick_position(row, col), brick_size, 3);
+            rigid_bricks.push_back(b);
+        }
+    }
+
     sync_drawables();
 }
 
@@ -87,7 +99,18 @@ void scene_structure::sync_drawables()
     sphere.model.translation = ball.p;
 
     for (size_t k = 0; k < bricks.size(); ++k)
-        bricks[k].model.translation = bricks_state[k].p;
+    {
+        if (sim.rigid_bricks)
+        {
+            bricks[k].model.translation = rigid_bricks[k].com;
+            bricks[k].model.rotation = rotation_transform::from_matrix(rigid_bricks[k].R);
+        }
+        else
+        {
+            bricks[k].model.translation = bricks_state[k].p;
+            bricks[k].model.rotation = rotation_transform();
+        }
+    }
 }
 
 void scene_structure::display_frame()
@@ -106,7 +129,10 @@ void scene_structure::display_frame()
         // analytic pendulum
         if (!sim.simulated_ball)
             update_ball();
-        simulate(ball, bricks_state, sim, pendulum, dt);
+        if (sim.rigid_bricks)
+            simulate_rigid(ball, rigid_bricks, sim, pendulum, dt);
+        else
+            simulate(ball, bricks_state, sim, pendulum, dt);
     }
 
     if (!sim.simulated_ball)
@@ -144,6 +170,9 @@ void scene_structure::display_gui()
     ImGui::SliderFloat("Damping", &sim.damping, 0.0f, 2.0f, "%.2f");
     ImGui::SliderFloat("Restitution", &sim.restitution, 0.0f, 1.0f, "%.2f");
     ImGui::SliderFloat("Friction", &sim.friction, 0.0f, 1.0f, "%.2f");
+    if (ImGui::Checkbox("Rigid bricks (shape matching)", &sim.rigid_bricks))
+        reset_simulation();
+    ImGui::SliderInt("Collision steps", &sim.collision_steps, 1, 20);
 
     bool changed = false;
     changed |=
