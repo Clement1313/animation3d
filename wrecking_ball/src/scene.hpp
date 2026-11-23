@@ -17,6 +17,7 @@ struct gui_parameters
 {
     bool display_frame = true;
     bool display_wireframe = false;
+    bool paused = true;
 };
 
 // The structure of the custom scene

@@ -56,6 +56,8 @@ void scene_structure::reset_simulation()
 {
     // Wrecking ball
     timer.t = 0.0f;
+    timer.stop();
+    gui.paused = true;
     ball = particle_structure();
     ball.r = 0.45f;
     ball.m = sim.ball_mass;
@@ -124,7 +126,8 @@ void scene_structure::display_frame()
     timer.update();
 
     float const dt = sim.dt * timer.scale;
-    for (int k = 0; k < sim.iterations; ++k)
+    int const n_steps = gui.paused ? 0 : sim.iterations;
+    for (int k = 0; k < n_steps; ++k)
     {
         // analytic pendulum
         if (!sim.simulated_ball)
@@ -168,7 +171,8 @@ void scene_structure::display_gui()
     ImGui::SliderInt("Iterations / frame", &sim.iterations, 1, 20);
     ImGui::SliderFloat("Gravity", &sim.gravity, 0.0f, 20.0f, "%.2f");
     ImGui::SliderFloat("Damping", &sim.damping, 0.0f, 2.0f, "%.2f");
-    ImGui::SliderFloat("Restitution", &sim.restitution, 0.0f, 1.0f, "%.2f");
+    if (!sim.rigid_bricks)
+        ImGui::SliderFloat("Restitution", &sim.restitution, 0.0f, 1.0f, "%.2f");
     ImGui::SliderFloat("Friction", &sim.friction, 0.0f, 1.0f, "%.2f");
     if (ImGui::Checkbox("Rigid bricks (shape matching)", &sim.rigid_bricks))
         reset_simulation();
@@ -196,6 +200,23 @@ void scene_structure::display_gui()
     if (ImGui::SliderAngle("Start angle", &pendulum.theta_max, 5.0f, 75.0f))
         reset_simulation();
 
+    if (!gui.paused)
+    {
+        if (ImGui::Button("Pause"))
+        {
+            gui.paused = true;
+            timer.stop();
+        }
+    }
+    else
+    {
+        if (ImGui::Button(timer.t == 0.0f ? "Launch" : "Resume"))
+        {
+            gui.paused = false;
+            timer.start();
+        }
+    }
+    ImGui::SameLine();
     if (ImGui::Button("Reset"))
         reset_simulation();
 }
