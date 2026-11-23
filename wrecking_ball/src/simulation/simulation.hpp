@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "cgp/cgp.hpp"
+#include "brick/brick.hpp"
 #include "pendulum/pendulum.hpp"
 
 // from tp02
@@ -24,12 +25,17 @@ struct simulation_parameters
     float gravity = 9.81f;
     float damping = 0.1f;
     float restitution = 0.4f;
-    float friction = 0.05f;
+    float friction = 0.3f;
     float ball_mass = 50.0f;
     float brick_mass = 1.0f;
     bool simulated_ball = true; // false: analytic pendulum
+    bool rigid_bricks = true; // false: bricks are single spheres
+    int collision_steps = 5;
 };
 
 void simulate(particle_structure& ball, std::vector<particle_structure>& bricks,
               simulation_parameters const& sim,
               pendulum_structure const& pendulum, float dt);
+
+void simulate_rigid(particle_structure& ball, std::vector<brick_structure>& bricks, simulation_parameters const& sim,
+                    pendulum_structure const& pendulum, float dt);
